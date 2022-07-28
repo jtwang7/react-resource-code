@@ -4011,6 +4011,7 @@ function beginWork(
     }
     case HostRoot:
       return updateHostRoot(current, workInProgress, renderLanes);
+    // * HostComponent: 原生 DOM 组件对应的 Fiber 节点组件类型
     case HostComponent:
       return updateHostComponent(current, workInProgress, renderLanes);
     case HostText:

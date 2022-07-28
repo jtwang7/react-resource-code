@@ -313,7 +313,10 @@ if (supportsMutation) {
   ) {
     // We only have the top Fiber that was created but we need recurse down its
     // children to find all the terminal nodes.
+    // * React 基于创建的顶级 Fiber 递归其子节点以找到所有终端节点。因此需要克隆一份指针进行操作
     let node = workInProgress.child;
+
+    // * 递归操作所有子节点直至完成
     while (node !== null) {
       // eslint-disable-next-line no-labels
       branches: if (node.tag === HostComponent) {
@@ -355,16 +358,31 @@ if (supportsMutation) {
       }
       // $FlowFixMe This is correct but Flow is confused by the labeled break.
       node = (node: Fiber);
+
+      // ? (待定) 避免循环引用 ？
       if (node === workInProgress) {
         return;
       }
+
+      /**
+       * * 递归的“归”过程：
+       * * 当遍历到 Fiber 的子集 (也就是此处的 node) 末尾节点时 (此时不存在后置位兄弟节点)，
+       * * 判断该节点是否为根节点 (或发生循环引用)：
+       * *   若是，则终止遍历
+       * *   若不是，则将指针切换至父节点 (也就是向上回溯)
+       * * 不断遍历执行“归”的步骤，直到同层出现兄弟节点或回归到根节点 (node.return === null)
+       */
       while (node.sibling === null) {
         if (node.return === null || node.return === workInProgress) {
           return;
         }
+        // * 切换至父节点【归】
         node = node.return;
       }
+
+      // * 统一兄弟节点的父节点
       node.sibling.return = node.return;
+      // * 切换至下一个兄弟节点，继续递归
       node = node.sibling;
     }
   };
@@ -962,11 +980,18 @@ function completeWork(
       }
       return null;
     }
+    // * 对于原生 DOM 组件对应 Fiber 节点的 completeWork 逻辑处理
     case HostComponent: {
       popHostContext(workInProgress);
       const rootContainerInstance = getRootHostContainer();
       const type = workInProgress.type;
+      /**
+       * * 基于 current 和 workInProgress.stateNode 判断执行 mount 逻辑还是 update 逻辑
+       * * 若 current 不为空且当前 Fiber 所对应的 DOM 节点存在 (即页面上有该元素)，则执行 update
+       * * 若 current 为空或者页面上不存在对应的 DOM 节点 (还为生成)，则执行 mount 逻辑
+       */
       if (current !== null && workInProgress.stateNode != null) {
+        // * 执行 update 逻辑
         updateHostComponent(
           current,
           workInProgress,
@@ -979,6 +1004,7 @@ function completeWork(
           markRef(workInProgress);
         }
       } else {
+        // * 执行 mount 逻辑
         if (!newProps) {
           if (workInProgress.stateNode === null) {
             throw new Error(
@@ -1013,6 +1039,7 @@ function completeWork(
             markUpdate(workInProgress);
           }
         } else {
+          // * 基于 Fiber 节点生成对应的 DOM 节点
           const instance = createInstance(
             type,
             newProps,
@@ -1022,7 +1049,8 @@ function completeWork(
           );
 
           appendAllChildren(instance, workInProgress, false, false);
-
+          
+          // * 将生成的 DOM 节点链接到 Fiber 对应的指针上
           workInProgress.stateNode = instance;
 
           // Certain renderers require commit-time effects for initial mount.
