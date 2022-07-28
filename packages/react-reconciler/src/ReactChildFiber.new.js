@@ -1196,8 +1196,11 @@ function ChildReconciler(shouldTrackSideEffects) {
       created.return = returnFiber;
       return created;
     } else {
+      // * 创建 Fiber 节点
       const created = createFiberFromElement(element, returnFiber.mode, lanes);
+      // * 创建并挂载 ref 实例
       created.ref = coerceRef(returnFiber, currentFirstChild, element);
+      // * 链接到父节点
       created.return = returnFiber;
       return created;
     }
@@ -1256,6 +1259,13 @@ function ChildReconciler(shouldTrackSideEffects) {
     // Handle top level unkeyed fragments as if they were arrays.
     // This leads to an ambiguity between <>{[...]}</> and <>...</>.
     // We treat the ambiguous cases above the same.
+    /**
+     * * 该段逻辑作用：处理顶层未用 key 标记的 fragments 模版片段书写差异的问题
+     * * fragments 模版片段可以用不同的 JSX 写法表示：
+     * * 1. <>{[...]}</> 主动用 array 数组写法包裹
+     * * 2. <>...</> 让 JSX 模版语法自动包裹
+     * * 为处理上述差异，我们将识别 <>...</> 形式并将其统一转为数组形式存储
+     */
     const isUnkeyedTopLevelFragment =
       typeof newChild === 'object' &&
       newChild !== null &&
@@ -1265,6 +1275,7 @@ function ChildReconciler(shouldTrackSideEffects) {
       newChild = newChild.props.children;
     }
 
+    // * 调用对应逻辑处理不同的 type 类型并生成子 Fiber 节点
     // Handle object types
     if (typeof newChild === 'object' && newChild !== null) {
       switch (newChild.$$typeof) {

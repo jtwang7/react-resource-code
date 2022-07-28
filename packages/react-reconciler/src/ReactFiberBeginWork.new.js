@@ -296,17 +296,39 @@ if (__DEV__) {
   didWarnAboutDefaultPropsOnFunctionComponent = {};
 }
 
+/**
+ * * Reconciler 模块核心部分
+ * * 对于 mount 阶段的组件，他会创建新的子 Fiber 节点
+ * * 对于 update 阶段的组件，他会将当前组件与该组件在上次更新时对应的 Fiber 节点比较（Diff算法），将比较的结果生成新Fiber节点
+ * @param {*} current 
+ * @param {*} workInProgress 
+ * @param {*} nextChildren 
+ * @param {*} renderLanes 
+ */
 export function reconcileChildren(
   current: Fiber | null,
   workInProgress: Fiber,
   nextChildren: any,
   renderLanes: Lanes,
 ) {
+  /**
+   * * 基于 current 是否为 null 判断组件处在哪个阶段：
+   * * current === null: mount 阶段
+   * * current !== null: update 阶段
+   */
+  /**
+   * * 无论是 mount 逻辑还是 update 逻辑，最终会生成新的子 Fiber 节点并赋值给 workInProgress.child
+   * * 新的 workInProgress 将会作为本次 beginWork 的返回值，也作为下次 performUnitOfWork 执行时 workInProgress 的传参
+   */
   if (current === null) {
     // If this is a fresh new component that hasn't been rendered yet, we
     // won't update its child set by applying minimal side-effects. Instead,
     // we will add them all to the child before it gets rendered. That means
     // we can optimize this reconciliation pass by not tracking side-effects.
+    // * 对于尚未渲染的全新组件：
+    // * 通过挂载的形式，在渲染前将所有子集添加到内存 Fiber 的子节点
+    // * 不采用收集副作用的形式更新各个子集
+    // * 通过不跟踪副作用来优化整个 reconciliation 协调过程
     workInProgress.child = mountChildFibers(
       workInProgress,
       null,
@@ -1046,6 +1068,7 @@ function updateProfiler(
 
 function markRef(current: Fiber | null, workInProgress: Fiber) {
   const ref = workInProgress.ref;
+  // * 若当前 Fiber 相较于 current Fiber 新增或更新了 ref 实例，则添加一个 Ref flag 调度 
   if (
     (current === null && ref !== null) ||
     (current !== null && current.ref !== ref)
@@ -1551,6 +1574,7 @@ function updateHostComponent(
   let nextChildren = nextProps.children;
   const isDirectTextChild = shouldSetTextContent(type, nextProps);
 
+  // * 对当前 Fiber 子节点是否为文本节点的逻辑处理
   if (isDirectTextChild) {
     // We special case a direct text child of a host node. This is a common
     // case. We won't handle it as a reified child. We will instead handle
@@ -3827,6 +3851,10 @@ function attemptEarlyBailoutIfNoScheduledUpdate(
   return bailoutOnAlreadyFinishedWork(current, workInProgress, renderLanes);
 }
 
+/**
+ * * current: 当前组件(上一次更新)对应的 Fiber 节点。【当前展示在页面上的组件对应的历史 Fiber】
+ * * workInProgress: 当前组件(本次更新)对应的 Fiber 节点。【存储在内存中即将更新的 Fiber】
+ */
 function beginWork(
   current: Fiber | null,
   workInProgress: Fiber,
@@ -3851,6 +3879,11 @@ function beginWork(
   }
 
   if (current !== null) {
+    // * 查看 current 与 workInProgress 间的关系
+    console.log('current 与 workInProgress 通过 .alternate 链接');
+    console.log('current.alternate === workInProgress: ', current.alternate === workInProgress);
+    console.log('workInProgress.alternate === current: ', workInProgress.alternate === current);
+    
     const oldProps = current.memoizedProps;
     const newProps = workInProgress.pendingProps;
 
@@ -3922,6 +3955,7 @@ function beginWork(
   // move this assignment out of the common path and into each branch.
   workInProgress.lanes = NoLanes;
 
+  // * 基于 tag 标签创建 Fiber 子节点
   switch (workInProgress.tag) {
     case IndeterminateComponent: {
       return mountIndeterminateComponent(
