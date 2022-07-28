@@ -116,6 +116,7 @@ if (__DEV__) {
   }
 }
 
+// * Fiber 节点构造函数
 function FiberNode(
   tag: WorkTag,
   pendingProps: mixed,
@@ -123,6 +124,14 @@ function FiberNode(
   mode: TypeOfMode,
 ) {
   // Instance
+  /**
+   * * 作为静态数据结构，保存了与当前组件相关的信息
+   * * tag: Fiber 对应的组件类型【Function / Class / Host / ...】
+   * * key: 组件的 key 属性，作为组件的唯一标识
+   * * elementType: 大部分情况同 type。某些情况不同，比如 FunctionComponent使用 React.memo 包裹
+   * * type: Fiber 对应的具体组件。例如【 FunctionComponent 对应函数本身 / ClassComponent 对应 class / HostComponent 对应 DOM 节点的 tagName】
+   * * stateNode: Fiber 对应的真实 DOM 节点
+   */
   this.tag = tag;
   this.key = key;
   this.elementType = null;
@@ -130,6 +139,13 @@ function FiberNode(
   this.stateNode = null;
 
   // Fiber
+  /**
+   * * 链接其他 Fiber 节点的指针属性
+   * * return: 指向父级 Fiber 节点
+   * * child: 指向子 Fiber 节点
+   * * sibling: 指向右边第一个兄弟 Fiber 节点
+   * ? (待定) index: 当前所处兄弟 Fiber 的索引 ？
+   */
   this.return = null;
   this.child = null;
   this.sibling = null;
@@ -137,6 +153,7 @@ function FiberNode(
 
   this.ref = null;
 
+  // * 保存本次更新产生的，与状态改变相关的信息
   this.pendingProps = pendingProps;
   this.memoizedProps = null;
   this.updateQueue = null;
@@ -150,6 +167,7 @@ function FiberNode(
   this.subtreeFlags = NoFlags;
   this.deletions = null;
 
+  // * 与调度优先级相关的属性字段
   this.lanes = NoLanes;
   this.childLanes = NoLanes;
 

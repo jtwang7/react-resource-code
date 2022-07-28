@@ -3887,6 +3887,11 @@ function beginWork(
     const oldProps = current.memoizedProps;
     const newProps = workInProgress.pendingProps;
 
+    /**
+     * * didReceiveUpdate 判断是否复用子 Fiber:
+     * * true: 不可复用，标记触发新建子 Fiber 逻辑
+     * * false: 可以直接复用前一次更新的子 Fiber，标记触发子 Fiber 克隆逻辑
+     */
     if (
       oldProps !== newProps ||
       hasLegacyContextChanged() ||
