@@ -56,15 +56,19 @@ function pop<T>(cursor: StackCursor<T>, fiber: Fiber): void {
   index--;
 }
 
+// * Fiber Stack 入栈操作
 function push<T>(cursor: StackCursor<T>, value: T, fiber: Fiber): void {
+  // * 栈内索引标识 + 1
   index++;
 
+  // * 指针入栈
   valueStack[index] = cursor.current;
 
   if (__DEV__) {
     fiberStack[index] = fiber;
   }
 
+  // * 指针赋值
   cursor.current = value;
 }
 

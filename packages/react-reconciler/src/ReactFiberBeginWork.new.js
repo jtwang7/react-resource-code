@@ -1587,6 +1587,7 @@ function updateHostComponent(
     workInProgress.flags |= ContentReset;
   }
 
+  // * 添加 Ref Effect 调度标识
   markRef(current, workInProgress);
   reconcileChildren(current, workInProgress, nextChildren, renderLanes);
   return workInProgress.child;
@@ -3854,6 +3855,7 @@ function attemptEarlyBailoutIfNoScheduledUpdate(
 /**
  * * current: 当前组件(上一次更新)对应的 Fiber 节点。【当前展示在页面上的组件对应的历史 Fiber】
  * * workInProgress: 当前组件(本次更新)对应的 Fiber 节点。【存储在内存中即将更新的 Fiber】
+ * * renderLanes: 优先级相关
  */
 function beginWork(
   current: Fiber | null,
@@ -3884,6 +3886,8 @@ function beginWork(
     console.log('current.alternate === workInProgress: ', current.alternate === workInProgress);
     console.log('workInProgress.alternate === current: ', workInProgress.alternate === current);
     
+    // * 历史(当前展示)的 props 保存于 current.memoizedProps 中
+    // * 更新(还未同步)的 props 保存于 workInProgress.pendingProps 中
     const oldProps = current.memoizedProps;
     const newProps = workInProgress.pendingProps;
 

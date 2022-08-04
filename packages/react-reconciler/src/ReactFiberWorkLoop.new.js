@@ -1299,6 +1299,7 @@ function markRootSuspended(root, suspendedLanes) {
 
 // This is the entry point for synchronous tasks that don't go
 // through Scheduler
+// * render 阶段的“同步更新”入口
 function performSyncWorkOnRoot(root) {
   if (enableProfilerTimer && enableProfilerNestedUpdatePhase) {
     syncNestedUpdateFlag();
@@ -1731,6 +1732,7 @@ export function renderHasNotSuspendedYet(): boolean {
   return workInProgressRootExitStatus === RootInProgress;
 }
 
+// * 同步渲染根(root)节点
 function renderRootSync(root: FiberRoot, lanes: Lanes) {
   const prevExecutionContext = executionContext;
   executionContext |= RenderContext;
@@ -1771,6 +1773,7 @@ function renderRootSync(root: FiberRoot, lanes: Lanes) {
 
   do {
     try {
+      // * 核心代码
       workLoopSync();
       break;
     } catch (thrownValue) {
@@ -1811,6 +1814,11 @@ function renderRootSync(root: FiberRoot, lanes: Lanes) {
 /** @noinline */
 function workLoopSync() {
   // Already timed out, so perform work without checking if we need to yield.
+  // * workLoop 同步渲染触发的时机：
+  // * 渲染任务存在一个最大等待期限，低优先级的渲染任务可以被后置但不能无限后置，
+  // * 当超出该最大等待期限时，该渲染任务就会被同步执行，不会再去检查是否需要中断。(强制执行的意思)
+  // * 因此，当 workLoopSync() 被执行时，workInProgress 是否为空就成了唯一的递归出口。
+  // * (workInProgress === null 意味着 rootFiber 指向了 currentProgress，页面完成渲染且 workInProgress 被重置，下次更新就绪)
   while (workInProgress !== null) {
     performUnitOfWork(workInProgress);
   }
@@ -1908,6 +1916,7 @@ function performUnitOfWork(unitOfWork: Fiber): void {
   // The current, flushed, state of this fiber is the alternate. Ideally
   // nothing should rely on this, but relying on it here means that we don't
   // need an additional field on the work in progress.
+  // * workInProgress 传入 unitOfWork，workInProgress.alternate -> current.alternate
   const current = unitOfWork.alternate;
   setCurrentDebugFiberInDEV(unitOfWork);
 
@@ -1917,6 +1926,8 @@ function performUnitOfWork(unitOfWork: Fiber): void {
     next = beginWork(current, unitOfWork, renderLanes);
     stopProfilerTimerIfRunningAndRecordDelta(unitOfWork, true);
   } else {
+    // * beginWork: Fiber 递归渲染中的“递”阶段。
+    // * 从 rootFiber 开始向下深度优先遍历。为遍历到的每个 Fiber 节点调用 beginWork 方法。
     next = beginWork(current, unitOfWork, renderLanes);
   }
 

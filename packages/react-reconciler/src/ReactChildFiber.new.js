@@ -263,11 +263,13 @@ function resolveLazy(lazyType) {
 // a compiler or we can do it manually. Helpers that don't need this branching
 // live outside of this function.
 function ChildReconciler(shouldTrackSideEffects) {
+  // * 删除目标 Fiber 节点
   function deleteChild(returnFiber: Fiber, childToDelete: Fiber): void {
     if (!shouldTrackSideEffects) {
       // Noop.
       return;
     }
+    // * 获取删除队列，并将目标节点添加到队列中，并添加 effect 标记
     const deletions = returnFiber.deletions;
     if (deletions === null) {
       returnFiber.deletions = [childToDelete];
@@ -277,6 +279,7 @@ function ChildReconciler(shouldTrackSideEffects) {
     }
   }
 
+  // ? 删除剩余的子节点 ？
   function deleteRemainingChildren(
     returnFiber: Fiber,
     currentFirstChild: Fiber | null,
@@ -288,7 +291,9 @@ function ChildReconciler(shouldTrackSideEffects) {
 
     // TODO: For the shouldClone case, this could be micro-optimized a bit by
     // assuming that after the first child we've already added everything.
+    // * 获取目标子节点集合的头节点指针
     let childToDelete = currentFirstChild;
+    // * 迭代删除该节点及其兄弟节点 (同层所有节点)
     while (childToDelete !== null) {
       deleteChild(returnFiber, childToDelete);
       childToDelete = childToDelete.sibling;
@@ -320,6 +325,8 @@ function ChildReconciler(shouldTrackSideEffects) {
   function useFiber(fiber: Fiber, pendingProps: mixed): Fiber {
     // We currently set sibling to null and index to 0 here because it is easy
     // to forget to do before returning it. E.g. for the single child case.
+    // * createWorkInProgress() 基于 current 创建了一个 workInProgress
+    // * 同时在此处将 index 和 sibling 初始化，获得一颗独立的 Fiber 树
     const clone = createWorkInProgress(fiber, pendingProps);
     clone.index = 0;
     clone.sibling = null;
@@ -356,6 +363,7 @@ function ChildReconciler(shouldTrackSideEffects) {
     }
   }
 
+  // * 为新节点添加一个插入标识 (Placement)
   function placeSingleChild(newFiber: Fiber): Fiber {
     // This is simpler for the single child case. We only need to do a
     // placement for inserting new children.
@@ -1181,6 +1189,7 @@ function ChildReconciler(shouldTrackSideEffects) {
         deleteRemainingChildren(returnFiber, child);
         break;
       } else {
+        // * 若不存在 key 值，则表明该节点不存在，删除
         deleteChild(returnFiber, child);
       }
       child = child.sibling;

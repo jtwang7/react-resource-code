@@ -265,14 +265,24 @@ export function resolveLazyComponentTag(Component: Function): WorkTag {
 }
 
 // This is used to create an alternate fiber to do work on.
+// * 双缓存 - workInProgress Fiber 创建
+// * 总体上可以概括为以 current 为模板创建 workInProgress 树
 export function createWorkInProgress(current: Fiber, pendingProps: any): Fiber {
+  // * 从 current.alternate 指针获取到 workInProgress Fiber
   let workInProgress = current.alternate;
   if (workInProgress === null) {
+    // * 此处是对双缓存池技术 (double buffering) 的解释
     // We use a double buffering pooling technique because we know that we'll
     // only ever need at most two versions of a tree. We pool the "other" unused
     // node that we're free to reuse. This is lazily created to avoid allocating
     // extra objects for things that are never updated. It also allow us to
     // reclaim the extra memory if needed.
+    // ? 为什么要设计为两个缓存树结构
+    // * 因为 React 只需要最多两个“版本”的树，一个用于保留历史记录及展示，一个在内存中做更新操作
+    // * 双缓存机制可以让 React 自由重用节点
+
+    // * createFiber() 调用了 FiberNode 构造函数，生成新的 Fiber 节点
+    // * 此处 workInProgress === null，因此基于 current 拷贝出一个副本
     workInProgress = createFiber(
       current.tag,
       pendingProps,
@@ -291,15 +301,18 @@ export function createWorkInProgress(current: Fiber, pendingProps: any): Fiber {
       workInProgress._debugHookTypes = current._debugHookTypes;
     }
 
+    // * 将 current 与新创建的 workInProgress 相互关联 (alternate)
     workInProgress.alternate = current;
     current.alternate = workInProgress;
   } else {
+    // * 若已存在 workInProgress，则基于当前 current 更新
     workInProgress.pendingProps = pendingProps;
     // Needed because Blocks store data on type.
     workInProgress.type = current.type;
 
     // We already have an alternate.
     // Reset the effect tag.
+    // * 重置 effect tag
     workInProgress.flags = NoFlags;
 
     // The effects are no longer valid.
@@ -329,6 +342,8 @@ export function createWorkInProgress(current: Fiber, pendingProps: any): Fiber {
 
   // Clone the dependencies object. This is mutated during the render phase, so
   // it cannot be shared with the current fiber.
+  // * 由于依赖项会在 render 阶段发生改变，因此此处拷贝了 current 依赖对象，而非直接关联。
+  // * workInProgress.dependencies 与 current.dependencies 不会共享
   const currentDependencies = current.dependencies;
   workInProgress.dependencies =
     currentDependencies === null
