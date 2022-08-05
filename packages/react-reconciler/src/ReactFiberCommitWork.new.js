@@ -2175,6 +2175,7 @@ export function commitMutationEffects(
   inProgressRoot = null;
 }
 
+// * 递归遍历 mutation effects
 function recursivelyTraverseMutationEffects(
   root: FiberRoot,
   parentFiber: Fiber,
@@ -2182,11 +2183,13 @@ function recursivelyTraverseMutationEffects(
 ) {
   // Deletions effects can be scheduled on any fiber type. They need to happen
   // before the children effects hae fired.
+  // * 由于 删除/卸载 相关的副作用会被任意 fiber 类型所调度，因此需要在其他 effects 被触发前全部执行完毕
   const deletions = parentFiber.deletions;
   if (deletions !== null) {
     for (let i = 0; i < deletions.length; i++) {
       const childToDelete = deletions[i];
       try {
+        // * 执行卸载的副作用操作
         commitDeletionEffects(root, parentFiber, childToDelete);
       } catch (error) {
         captureCommitPhaseError(childToDelete, parentFiber, error);
@@ -2197,6 +2200,7 @@ function recursivelyTraverseMutationEffects(
   const prevDebugFiber = getCurrentDebugFiberInDEV();
   if (parentFiber.subtreeFlags & MutationMask) {
     let child = parentFiber.child;
+    // * 此处执行了递归遍历操作（深度遍历）
     while (child !== null) {
       setCurrentDebugFiberInDEV(child);
       commitMutationEffectsOnFiber(child, root, lanes);
@@ -2222,6 +2226,12 @@ function commitMutationEffectsOnFiber(
     case ForwardRef:
     case MemoComponent:
     case SimpleMemoComponent: {
+      /**
+       * * 注意分析当前逻辑下的各部分 effects 调用顺序：
+       * * - recursivelyTraverseMutationEffects：执行了所有 deletion，然后递归到最深叶子节点
+       * * - 从最深叶子节点逐步往上执行 commitReconciliationEffects：执行 insert
+       * * - insert 执行完毕后，处理 unmount/mount 时所注册的 hook effects 逻辑：useLayoutEffect 注册的回调就是在此处执行的
+       */
       recursivelyTraverseMutationEffects(root, finishedWork, lanes);
       commitReconciliationEffects(finishedWork);
 
@@ -2319,6 +2329,7 @@ function commitMutationEffectsOnFiber(
           }
         }
 
+        // * 原生 DOM 组件触发更新
         if (flags & Update) {
           const instance: Instance = finishedWork.stateNode;
           if (instance != null) {
@@ -2585,6 +2596,8 @@ function commitReconciliationEffects(finishedWork: Fiber) {
   // Placement effects (insertions, reorders) can be scheduled on any fiber
   // type. They needs to happen after the children effects have fired, but
   // before the effects on this fiber have fired.
+  // * Placement(插入/重排序)会被任意 fiber type 类型调度。
+  // * 他们需要在所有子节点 effects 触发后，当前 fiber 其余 effects 触发前触发。
   const flags = finishedWork.flags;
   if (flags & Placement) {
     try {
@@ -2596,6 +2609,7 @@ function commitReconciliationEffects(finishedWork: Fiber) {
     // inserted, before any life-cycles like componentDidMount gets called.
     // TODO: findDOMNode doesn't rely on this any more but isMounted does
     // and isMounted is deprecated anyway so we should be able to kill this.
+    // * 清除 Placement tag，表明该节点已被插入到真实 DOM 中。
     finishedWork.flags &= ~Placement;
   }
   if (flags & Hydrating) {

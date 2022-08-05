@@ -2273,6 +2273,7 @@ function commitRootImpl(
     }
 
     // The next phase is the mutation phase, where we mutate the host tree.
+    // * mutation 阶段，此处遍历 effectList 执行一系列 DOM 相关的操作，例如 DOM 插入/修改/删除等
     commitMutationEffects(root, finishedWork, lanes);
 
     if (enableCreateEventHandleAPI) {
