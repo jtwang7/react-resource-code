@@ -92,6 +92,7 @@ if (__DEV__) {
   };
 }
 
+// * 组件中对于 ref 的处理
 function coerceRef(
   returnFiber: Fiber,
   current: Fiber | null,
@@ -145,12 +146,17 @@ function coerceRef(
       }
     }
 
+    // * 当前块级作用域内处理【原始类型 ref】
+    // * React 会将原始类型 ref 转为 => string ref
+    // ? element._owner 字段值是什么 ？
     if (element._owner) {
       const owner: ?Fiber = (element._owner: any);
       let inst;
       if (owner) {
         const ownerFiber = ((owner: any): Fiber);
 
+        // * 判断当前 Fiber 类型：
+        // * 若是函数组件，由于函数组件不存在 string refs，报错
         if (ownerFiber.tag !== ClassComponent) {
           throw new Error(
             'Function components cannot have string refs. ' +
@@ -160,6 +166,7 @@ function coerceRef(
           );
         }
 
+        // * 获取 Fiber 对应的实例
         inst = ownerFiber.stateNode;
       }
 
@@ -175,8 +182,11 @@ function coerceRef(
       if (__DEV__) {
         checkPropStringCoercion(mixedRef, 'ref');
       }
+
+      // * => string ref
       const stringRef = '' + mixedRef;
       // Check if previous string ref matches new string ref
+      // * 判断 current string ref 与当前 ref 是否匹配
       if (
         current !== null &&
         current.ref !== null &&
@@ -185,6 +195,7 @@ function coerceRef(
       ) {
         return current.ref;
       }
+      // ? 返回回调 ref【callback ref】? 
       const ref = function(value) {
         let refs = resolvedInst.refs;
         if (refs === emptyRefsObject) {
@@ -218,6 +229,7 @@ function coerceRef(
       }
     }
   }
+  // * 直接返回 object 和 function 类型的 ref
   return mixedRef;
 }
 
