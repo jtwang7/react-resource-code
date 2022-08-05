@@ -1208,12 +1208,14 @@ function ChildReconciler(shouldTrackSideEffects) {
     }
 
     if (element.type === REACT_FRAGMENT_TYPE) {
+      // * element.props.children 会被放到新创建的 Fiber 的 pendingProps 字段上
       const created = createFiberFromFragment(
         element.props.children,
         returnFiber.mode,
         lanes,
         element.key,
       );
+      // * 关联父节点
       created.return = returnFiber;
       return created;
     } else {

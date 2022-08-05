@@ -223,6 +223,7 @@ if (supportsMutation) {
     let node = workInProgress.child;
     while (node !== null) {
       if (node.tag === HostComponent || node.tag === HostText) {
+        // * 向父节点插入真实 DOM 节点
         appendInitialChild(parent, node.stateNode);
       } else if (node.tag === HostPortal) {
         // If we have a portal child, then we don't want to traverse
@@ -259,7 +260,12 @@ if (supportsMutation) {
   ) {
     // If we have an alternate, that means this is an update and we need to
     // schedule a side-effect to do the updates.
+    // * 当节点存在对应的 alternate 关联关系时，意味着该节点是一个 update node
+    // * 我们需要去调度该 Fiber 保存的副作用完成更新
+
     const oldProps = current.memoizedProps;
+
+    // * 若 props 未发生变化，则意味着该节点不需要更新，更应该去关心它子节点的改变。
     if (oldProps === newProps) {
       // In mutation mode, this is sufficient for a bailout because
       // we won't touch this node even if children changed.
@@ -288,6 +294,7 @@ if (supportsMutation) {
     // If the update payload indicates that there is a change or if there
     // is a new ref we mark this as an update. All the work is done in commitWork.
     if (updatePayload) {
+      // * 添加 Update Effect Tag
       markUpdate(workInProgress);
     }
   };

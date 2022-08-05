@@ -320,6 +320,10 @@ export function reconcileChildren(
    * * 无论是 mount 逻辑还是 update 逻辑，最终会生成新的子 Fiber 节点并赋值给 workInProgress.child
    * * 新的 workInProgress 将会作为本次 beginWork 的返回值，也作为下次 performUnitOfWork 执行时 workInProgress 的传参
    */
+  /**
+   * * mountChildFibers 与 reconcileChildFibers 这两个方法的逻辑基本一致。唯一的区别是：
+   * * reconcileChildFibers 会为生成的 Fiber 节点带上 effectTag 属性，而 mountChildFibers 不会。
+   */
   if (current === null) {
     // If this is a fresh new component that hasn't been rendered yet, we
     // won't update its child set by applying minimal side-effects. Instead,
@@ -329,6 +333,12 @@ export function reconcileChildren(
     // * 通过挂载的形式，在渲染前将所有子集添加到内存 Fiber 的子节点
     // * 不采用收集副作用的形式更新各个子集
     // * 通过不跟踪副作用来优化整个 reconciliation 协调过程
+
+    /**
+     * * 假设 mountChildFibers 也会赋值effectTag，那么可以预见 mount 时整棵 Fiber 树所有节点都会有 Placement effectTag。
+     * * 那么 commit 阶段在执行 DOM 操作时每个节点都会执行一次插入操作，这样大量的 DOM 操作是极低效的。
+     * * 为了解决这个问题，在 mount 时只有 rootFiber 会赋值 Placement effectTag，在 commit 阶段只会执行一次插入操作。
+     */
     workInProgress.child = mountChildFibers(
       workInProgress,
       null,

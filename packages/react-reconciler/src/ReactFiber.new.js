@@ -507,11 +507,15 @@ export function createFiberFromTypeAndProps(
   mode: TypeOfMode,
   lanes: Lanes,
 ): Fiber {
+  // * fiberTag 初始化时赋值为 “不确定的 Component 类型”
   let fiberTag = IndeterminateComponent;
   // The resolved type is set if we know what the final type will be. I.e. it's not lazy.
   let resolvedType = type;
+
+  // * 生成 fiberTag
   if (typeof type === 'function') {
     if (shouldConstruct(type)) {
+      // * 若是构造函数，则 fiberTag 对应赋予类组件
       fiberTag = ClassComponent;
       if (__DEV__) {
         resolvedType = resolveClassForHotReloading(resolvedType);
@@ -522,6 +526,7 @@ export function createFiberFromTypeAndProps(
       }
     }
   } else if (typeof type === 'string') {
+    // * 如果是 string 类型则对应原生组件
     fiberTag = HostComponent;
   } else {
     getTag: switch (type) {
@@ -623,6 +628,7 @@ export function createFiberFromTypeAndProps(
     }
   }
 
+  // * 创建 Fiber 节点
   const fiber = createFiber(fiberTag, pendingProps, key, mode);
   fiber.elementType = type;
   fiber.type = resolvedType;

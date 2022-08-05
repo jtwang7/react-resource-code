@@ -352,6 +352,8 @@ function commitBeforeMutationEffects_complete() {
     const fiber = nextEffect;
     setCurrentDebugFiberInDEV(fiber);
     try {
+      // * commitBeforeMutationEffectsOnFiber 是 commitBeforeMutationLifeCycles 的别名
+      // * 此处执行一系列 commit before mutation 阶段的生命周期钩子
       commitBeforeMutationEffectsOnFiber(fiber);
     } catch (error) {
       captureCommitPhaseError(fiber, fiber.return, error);
@@ -388,6 +390,7 @@ function commitBeforeMutationEffectsOnFiber(finishedWork: Fiber) {
     }
   }
 
+  // * 调用 getSnapshotBeforeUpdate
   if ((flags & Snapshot) !== NoFlags) {
     setCurrentDebugFiberInDEV(finishedWork);
 
@@ -397,8 +400,10 @@ function commitBeforeMutationEffectsOnFiber(finishedWork: Fiber) {
       case SimpleMemoComponent: {
         break;
       }
+      // * 只有类组件内部才有 getSnapshotBeforeUpdate 钩子调用
       case ClassComponent: {
         if (current !== null) {
+          // * 获取 props, state 及组件对应 DOM 实例
           const prevProps = current.memoizedProps;
           const prevState = current.memoizedState;
           const instance = finishedWork.stateNode;
@@ -432,6 +437,9 @@ function commitBeforeMutationEffectsOnFiber(finishedWork: Fiber) {
               }
             }
           }
+          // * 调用 getSnapshotBeforeUpdate 
+          // * 在发生 mutation 计算前，从 DOM 中捕获一些信息（例如，滚动位置）。
+          // * 并将返回值作为参数传递给 componentDidUpdate()
           const snapshot = instance.getSnapshotBeforeUpdate(
             finishedWork.elementType === finishedWork.type
               ? prevProps
@@ -499,15 +507,20 @@ function commitHookEffectListUnmount(
   const updateQueue: FunctionComponentUpdateQueue | null = (finishedWork.updateQueue: any);
   const lastEffect = updateQueue !== null ? updateQueue.lastEffect : null;
   if (lastEffect !== null) {
+    // * updateQueue 是环状链表
+    // * 通过 lastEffect.next 取到链表头节点 firstEffect
     const firstEffect = lastEffect.next;
     let effect = firstEffect;
     do {
       if ((effect.tag & flags) === flags) {
         // Unmount
+        // * effect.destroy: 副作用中所定义的销毁函数【destroy()】
+        // * 将 effect.destroy 用一个变量保存，然后立即重置 effect.destroy，表明该 effect 标记已被消耗
         const destroy = effect.destroy;
         effect.destroy = undefined;
         if (destroy !== undefined) {
           if (enableSchedulingProfiler) {
+            // * 标记 unmount 开始
             if ((flags & HookPassive) !== NoHookEffect) {
               markComponentPassiveEffectUnmountStarted(finishedWork);
             } else if ((flags & HookLayout) !== NoHookEffect) {
@@ -520,6 +533,7 @@ function commitHookEffectListUnmount(
               setIsRunningInsertionEffect(true);
             }
           }
+          // * 执行预先定义的 destroy 销毁回调
           safelyCallDestroy(finishedWork, nearestMountedAncestor, destroy);
           if (__DEV__) {
             if ((flags & HookInsertion) !== NoHookEffect) {
@@ -528,6 +542,7 @@ function commitHookEffectListUnmount(
           }
 
           if (enableSchedulingProfiler) {
+            // * 标记 unmount 结束
             if ((flags & HookPassive) !== NoHookEffect) {
               markComponentPassiveEffectUnmountStopped();
             } else if ((flags & HookLayout) !== NoHookEffect) {
@@ -536,6 +551,7 @@ function commitHookEffectListUnmount(
           }
         }
       }
+      // * 执行下一个 effect 直至所有 effect.destroy 全部执行
       effect = effect.next;
     } while (effect !== firstEffect);
   }
@@ -558,12 +574,16 @@ function commitHookEffectListMount(flags: HookFlags, finishedWork: Fiber) {
         }
 
         // Mount
+        // * 副作用中定义的 create 回调
         const create = effect.create;
         if (__DEV__) {
           if ((flags & HookInsertion) !== NoHookEffect) {
             setIsRunningInsertionEffect(true);
           }
         }
+        // * 此处执行 create 回调函数【flush effect】，然后将 create 返回的 destroy 函数记录，等待下一次 commit 时执行。
+        // * 【destroy 总会在 create 执行前全部完成执行，create 会创建新一轮的 destroy 函数，等待下一次 commit 执行】
+        // * create 回调执行的返回值是对应副作用的 destroy 函数
         effect.destroy = create();
         if (__DEV__) {
           if ((flags & HookInsertion) !== NoHookEffect) {
