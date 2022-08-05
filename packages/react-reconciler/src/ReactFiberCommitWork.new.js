@@ -727,11 +727,13 @@ function commitHookLayoutEffects(finishedWork: Fiber, hookFlags: HookFlags) {
   }
 }
 
+// * 执行类组件的生命周期钩子
 function commitClassLayoutLifecycles(
   finishedWork: Fiber,
   current: Fiber | null,
 ) {
   const instance = finishedWork.stateNode;
+  // * 通过 current === null 判断是 mount 还是 update 阶段，进而决定调用 componentDidMount 还是 componentDidUpdate
   if (current === null) {
     // We could update instance props and state here,
     // but instead we rely on them being set during last render.
@@ -770,6 +772,7 @@ function commitClassLayoutLifecycles(
     ) {
       try {
         startLayoutEffectTimer();
+        // * mount 调用 componentDidMount
         instance.componentDidMount();
       } catch (error) {
         captureCommitPhaseError(finishedWork, finishedWork.return, error);
@@ -825,6 +828,7 @@ function commitClassLayoutLifecycles(
     ) {
       try {
         startLayoutEffectTimer();
+        // * update 则调用 componentDidUpdate，同时传递对应的参数
         instance.componentDidUpdate(
           prevProps,
           prevState,
@@ -980,12 +984,14 @@ function commitLayoutEffectOnFiber(
     case FunctionComponent:
     case ForwardRef:
     case SimpleMemoComponent: {
+      // * 递归遍历 effects (深度遍历到叶子节点，然后向上 flush effects)
       recursivelyTraverseLayoutEffects(
         finishedRoot,
         finishedWork,
         committedLanes,
       );
       if (flags & Update) {
+        // * 执行 hook effect
         commitHookLayoutEffects(finishedWork, HookLayout | HookHasEffect);
       }
       break;
@@ -2230,7 +2236,7 @@ function commitMutationEffectsOnFiber(
        * * 注意分析当前逻辑下的各部分 effects 调用顺序：
        * * - recursivelyTraverseMutationEffects：执行了所有 deletion，然后递归到最深叶子节点
        * * - 从最深叶子节点逐步往上执行 commitReconciliationEffects：执行 insert
-       * * - insert 执行完毕后，处理 unmount/mount 时所注册的 hook effects 逻辑：useLayoutEffect 注册的回调就是在此处执行的
+       * * - insert 执行完毕后，处理 unmount/mount 时所注册的 hook effects 逻辑
        */
       recursivelyTraverseMutationEffects(root, finishedWork, lanes);
       commitReconciliationEffects(finishedWork);

@@ -2287,6 +2287,14 @@ function commitRootImpl(
     // the mutation phase, so that the previous tree is still current during
     // componentWillUnmount, but before the layout phase, so that the finished
     // work is current during componentDidMount/Update.
+    // * root 根节点在当前时机切换 current 指针指向 mutation 阶段完成后的 workInProgress Tree
+    /**
+     * * 这样做的目的：
+     * * - mutation 阶段之前，root.current 指向 current Fiber
+     * *   - 此时 React 可以获取到当前展示的 DOM 树的一些属性，以保证 componentWillUnmount 等一些生命周期中可获取到历史的状态
+     * * - mutation 阶段之后，root.current 指向 workInProgress Fiber
+     * *   - React 不再需要旧的 DOM 树属性，转而需要最新的 DOM 树属性，以保证在 componentDidMount/Update 阶段的状态都是最新的。
+     */
     root.current = finishedWork;
 
     // The next phase is the layout phase, where we call effects that read
@@ -2300,6 +2308,7 @@ function commitRootImpl(
     if (enableSchedulingProfiler) {
       markLayoutEffectsStarted(lanes);
     }
+    // * layout 阶段：调用生命周期和 Hook 钩子；赋值 ref
     commitLayoutEffects(finishedWork, root, lanes);
     if (__DEV__) {
       if (enableDebugTracing) {
