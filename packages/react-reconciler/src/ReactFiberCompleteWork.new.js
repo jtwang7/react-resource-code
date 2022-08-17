@@ -237,13 +237,23 @@ if (supportsMutation) {
       if (node === workInProgress) {
         return;
       }
+      /**
+       * * 递归的“归”过程：
+       * * 当遍历到 Fiber 的子集 (也就是此处的 node) 末尾节点时 (此时不存在后置位兄弟节点)，
+       * * 判断该节点是否为根节点 (或发生循环引用)：
+       * *   若是，则终止遍历
+       * *   若不是，则将指针切换至父节点 (也就是向上回溯)
+       * * 不断遍历执行“归”的步骤，直到同层出现兄弟节点或回归到根节点 (node.return === null)
+       */
       while (node.sibling === null) {
         if (node.return === null || node.return === workInProgress) {
           return;
         }
         node = node.return;
       }
+      // * 切换到兄弟节点分支
       node.sibling.return = node.return;
+      // * 切换至下一个兄弟节点，继续递归
       node = node.sibling;
     }
   };
@@ -387,7 +397,7 @@ if (supportsMutation) {
         node = node.return;
       }
 
-      // * 统一兄弟节点的父节点
+      // * 切换到兄弟节点分支
       node.sibling.return = node.return;
       // * 切换至下一个兄弟节点，继续递归
       node = node.sibling;

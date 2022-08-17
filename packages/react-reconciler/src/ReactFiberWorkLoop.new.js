@@ -992,6 +992,7 @@ function performConcurrentWorkOnRoot(root, didTimeout) {
       // This should only happen during a concurrent render, not a discrete or
       // synchronous update. We should have already checked for this when we
       // unwound the stack.
+      // * render 阶段因为某些原因中断，中断只会发生在 concurrent 并行渲染过程中。
       markRootSuspended(root, lanes);
     } else {
       // The render completed.
@@ -1002,6 +1003,7 @@ function performConcurrentWorkOnRoot(root, didTimeout) {
       // to the main thread, if it was fast enough, or if it expired. We could
       // skip the consistency check in that case, too.
       const renderWasConcurrent = !includesBlockingLane(root, lanes);
+      // * root.current.alternate 指向 workInProgress，此时 workInProgress 保存了已更新的 Fiber Tree
       const finishedWork: Fiber = (root.current.alternate: any);
       if (
         renderWasConcurrent &&
@@ -1032,6 +1034,8 @@ function performConcurrentWorkOnRoot(root, didTimeout) {
 
       // We now have a consistent tree. The next step is either to commit it,
       // or, if something suspended, wait to commit it after a timeout.
+      // * 至此 React 已经在内存中构建好了最新的 Fiber Tree。
+      // * 开启 commit 阶段
       root.finishedWork = finishedWork;
       root.finishedLanes = lanes;
       finishConcurrentRender(root, exitStatus, lanes);
@@ -1229,6 +1233,7 @@ function finishConcurrentRender(root, exitStatus, lanes) {
     }
     case RootCompleted: {
       // The work completed. Ready to commit.
+      // * 所有工作标签均已被完成，一切准备就绪！开启 commit 
       commitRoot(
         root,
         workInProgressRootRecoverableErrors,
@@ -1961,7 +1966,7 @@ function performUnitOfWork(unitOfWork: Fiber): void {
      * * 如果不存在兄弟 Fiber，会进入父级 Fiber 的“归”阶段。
      * * “递”和“归”阶段会交错执行直到“归”到 rootFiber。至此，render 阶段的工作就结束了。
      */
-    
+
     // * 当 next === null 时， unitOfWork 恰好指向叶子节点【因为 unitOfWork === workInProgress, workInProgress.child === next】
     // * 这就说明 completeUnitOfWork() 是自底而上的“归”
     completeUnitOfWork(unitOfWork);
@@ -2131,7 +2136,7 @@ function commitRootImpl(
     throw new Error('Should not already be working.');
   }
 
-  // ? finishedWork 指向什么节点 ？
+  // * root.finishedWork => root.current.alternate === completed workInProgress
   const finishedWork = root.finishedWork;
   const lanes = root.finishedLanes;
 
@@ -2353,6 +2358,7 @@ function commitRootImpl(
 
     // Tell Scheduler to yield at the end of the frame, so the browser has an
     // opportunity to paint.
+    // * 将控制权转交给 browser 绘制页面
     requestPaint();
 
     executionContext = prevExecutionContext;
@@ -2371,6 +2377,7 @@ function commitRootImpl(
     }
   }
 
+  // * rootDoesHavePassiveEffects 标记了当前 effect stack 回调队列是否存在被调度的 effects
   const rootDidHavePassiveEffects = rootDoesHavePassiveEffects;
 
   // * beforeMutation 阶段调度 flushPassiveEffects 时将 rootDoesHavePassiveEffects 置为了 true
@@ -2378,6 +2385,10 @@ function commitRootImpl(
   if (rootDoesHavePassiveEffects) {
     // This commit has passive effects. Stash a reference to them. But don't
     // schedule a callback until after flushing layout work.
+    /**
+     * * 当前 commit 阶段包含 passive effects，React 通过 rootDoesHavePassiveEffects 来标记这一状态。
+     * * 但会将 effect callback 回调调度延后到 layout work 全部执行完成后执行。
+     */
     rootDoesHavePassiveEffects = false;
     // * 将根节点赋值给全局变量 rootWithPendingPassiveEffects
     // * 这样 flushPassiveEffects() 就可以从中取到 effectList 执行副作用 flush 操作
@@ -2433,6 +2444,7 @@ function commitRootImpl(
 
   // Always call this before exiting `commitRoot`, to ensure that any
   // additional work on this root is scheduled.
+  // * 在每次离开 commitRoot 前调用，确保所有调度工作都已发生。
   ensureRootIsScheduled(root, now());
 
   if (recoverableErrors !== null) {

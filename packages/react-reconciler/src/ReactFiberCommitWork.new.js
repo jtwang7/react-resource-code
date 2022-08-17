@@ -1059,10 +1059,12 @@ function commitLayoutEffectOnFiber(
       // (eg DOM renderer may schedule auto-focus for inputs and form controls).
       // These effects should only be committed when components are first mounted,
       // aka when there is no current/alternate.
+      // * 首次 mount 挂载
       if (current === null && flags & Update) {
         commitHostComponentMount(finishedWork);
       }
 
+      // * 赋值 ref
       if (flags & Ref) {
         safelyAttachRef(finishedWork, finishedWork.return);
       }
@@ -2243,11 +2245,13 @@ function commitMutationEffectsOnFiber(
 
       if (flags & Update) {
         try {
+          // * 执行上一轮生产的 hook destroy
           commitHookEffectListUnmount(
             HookInsertion | HookHasEffect,
             finishedWork,
             finishedWork.return,
           );
+          // * 执行 hook create，并生产新一轮的 hook destroy
           commitHookEffectListMount(
             HookInsertion | HookHasEffect,
             finishedWork,
@@ -2646,6 +2650,7 @@ function recursivelyTraverseLayoutEffects(
   const prevDebugFiber = getCurrentDebugFiberInDEV();
   if (parentFiber.subtreeFlags & LayoutMask) {
     let child = parentFiber.child;
+    // * 执行当前节点的下层节点所有 effects 操作
     while (child !== null) {
       setCurrentDebugFiberInDEV(child);
       const current = child.alternate;
