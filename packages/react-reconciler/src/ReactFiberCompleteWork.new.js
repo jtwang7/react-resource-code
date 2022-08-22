@@ -212,6 +212,10 @@ let updateHostText;
 if (supportsMutation) {
   // Mutation mode
 
+  /**
+   * @param {Instance} parent 需要添加子节点实例的 DOM 节点
+   * @param {Fiber} workInProgress 当前 Fiber 节点对象
+   */
   appendAllChildren = function(
     parent: Instance,
     workInProgress: Fiber,
@@ -220,20 +224,25 @@ if (supportsMutation) {
   ) {
     // We only have the top Fiber that was created but we need recurse down its
     // children to find all the terminal nodes.
+    // * 获取子节点 Fiber 对象
     let node = workInProgress.child;
     while (node !== null) {
       if (node.tag === HostComponent || node.tag === HostText) {
-        // * 向父节点插入真实 DOM 节点
+        // * 若子节点 Fiber 是原生 DOM 类型，则调用 appendInitialChild 生成 DOM 实例。
+        // * 然后向父节点【parent Instance 真实 DOM】插入真实 DOM 节点
         appendInitialChild(parent, node.stateNode);
       } else if (node.tag === HostPortal) {
         // If we have a portal child, then we don't want to traverse
         // down its children. Instead, we'll get insertions from each child in
         // the portal directly.
       } else if (node.child !== null) {
+        // * 若 workInProgress.child 存在子节点，则需要递归到叶子节点，再向上回溯生成真实 DOM
+        // * 这种情况发生的场景：深度遍历回溯后，切换到兄弟节点时，由于兄弟节点的子节点没有 DOM 实例化，因此需要递归到叶子节点进行操作。
         node.child.return = node;
         node = node.child;
         continue;
       }
+      // * node 回溯到了 workInProgress 节点，表明 workInProgress 子节点已全部完成 DOM 实例化
       if (node === workInProgress) {
         return;
       }
@@ -882,6 +891,14 @@ function completeDehydratedSuspenseBoundary(
   }
 }
 
+
+/**
+ * 
+ * @param {Fiber | null} current 当前节点所对应的 current Fiber
+ * @param {Fiber} workInProgress 当前待处理的 Fiber 节点
+ * @param {Lanes} renderLanes 
+ * @returns 返回 null 表明当前 workInProgress 归阶段完成；返回 fiber 表明本次 completeWork 产生了新的任务
+ */
 function completeWork(
   current: Fiber | null,
   workInProgress: Fiber,
@@ -1065,6 +1082,7 @@ function completeWork(
             workInProgress,
           );
 
+          // * 将当前 Fiber 节点对应的所有已生成的子节点，添加到 Fiber 刚刚实例化的 DOM 节点中。
           appendAllChildren(instance, workInProgress, false, false);
           
           // * 将生成的 DOM 节点链接到 Fiber 对应的指针上

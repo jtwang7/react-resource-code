@@ -1367,6 +1367,8 @@ function performSyncWorkOnRoot(root) {
   // We now have a consistent tree. Because this is a sync render, we
   // will commit it even if something suspended.
   // * current 和 workInProgress 均挂在在 root 根节点下
+  // * workInProgress 已完成构建，保存到语义化 finishedWork Fiber 节点上
+  // * fiberRootNode 对象只包含了 current 字段，因此需要通过 root.current.alternate 访问 workInProgress 对象 
   const finishedWork: Fiber = (root.current.alternate: any);
   root.finishedWork = finishedWork;
   root.finishedLanes = lanes;
@@ -1834,8 +1836,8 @@ function renderRootSync(root: FiberRoot, lanes: Lanes) {
   }
 
   // Set this to null to indicate there's no in-progress render.
-  // * renderRootSync() 流程结束: 意味着递归遍历更新已完成，此时生成的 Fiber 节点树已保存到其他节点。
-  // * 将 workInProgressRoot 重置回 null, 表明当前已没有正在进行的 render 操作
+  // * renderRootSync() 流程结束, 递归遍历更新已完成【Fiber 树构建完毕 & FiberNode.stateNode 包含真实 DOM】。
+  // * 将 workInProgressRoot 指针重置回 null, 表明当前已没有正在进行的 render 操作
   workInProgressRoot = null;
   workInProgressRootRenderLanes = NoLanes;
 
@@ -1854,8 +1856,9 @@ function workLoopSync() {
   while (workInProgress !== null) {
     // * 每次迭代的 workInProgress 指向了当前正在处理的 Fiber 节点
     // TODO: workInProgress 什么时候会被置为 null?
-    // render阶段完成后【即递归构建 Fiber 树完成】会在 renderRootSync() 末尾重置 workInProgress，表明内存中已没有正在进行更新的 Fiber 树。
+    // render阶段是一个递归过程，不断向上回溯的终点是 root.return => workInProgress，即根节点的父节点
     // TODO: workInProgress 在重置之前会被保存到哪个节点?
+    // 不需要保存 workInProgress，因为 workInProgress 实际是指针，通过 workInProgress.child 仍可以访问到更新完成的 Fiber 对象
     performUnitOfWork(workInProgress);
   }
 }
@@ -1997,19 +2000,29 @@ function performUnitOfWork(unitOfWork: Fiber): void {
   ReactCurrentOwner.current = null;
 }
 
+/**
+ * * 已深度遍历到叶子节点，执行“归”操作
+ * @param {Fiber} unitOfWork 当前节点: workInProgress => unitOfWork
+ * @returns 
+ */
 function completeUnitOfWork(unitOfWork: Fiber): void {
   // Attempt to complete the current unit of work, then move to the next
   // sibling. If there are no more siblings, return to the parent fiber.
   // * “尝试”完成当前的工作单元，然后转到下一个兄弟节点。 如果没有更多兄弟，则返回父节点。
+  
+  // * 当前 workInProgress 节点已完成 Fiber 节点构建以及 effect flag 副作用标记添加，因此用 completedWork 变量语义化保存
   let completedWork = unitOfWork;
   do {
     // The current, flushed, state of this fiber is the alternate. Ideally
     // nothing should rely on this, but relying on it here means that we don't
     // need an additional field on the work in progress.
+    // * 获取当前节点所对应 current 树的历史 Fiber 节点
     const current = completedWork.alternate;
+    // * 获取父节点
     const returnFiber = completedWork.return;
 
     // Check if the work completed or if something threw.
+    // * 当前节点处于“已完成【Incomplete】”状态，执行 complete 阶段操作
     if ((completedWork.flags & Incomplete) === NoFlags) {
       setCurrentDebugFiberInDEV(completedWork);
       let next;
@@ -2017,6 +2030,7 @@ function completeUnitOfWork(unitOfWork: Fiber): void {
         !enableProfilerTimer ||
         (completedWork.mode & ProfileMode) === NoMode
       ) {
+        // * completeWork: 主要函数
         next = completeWork(current, completedWork, renderLanes);
       } else {
         startProfilerTimer(completedWork);
@@ -2101,6 +2115,7 @@ function completeUnitOfWork(unitOfWork: Fiber): void {
   } while (completedWork !== null);
 
   // We've reached the root.
+  // * 递归回溯到了根节点，意味着 render 阶段完成，更新当前进度状态
   if (workInProgressRootExitStatus === RootInProgress) {
     workInProgressRootExitStatus = RootCompleted;
   }
