@@ -275,7 +275,12 @@ function resolveLazy(lazyType) {
 // a compiler or we can do it manually. Helpers that don't need this branching
 // live outside of this function.
 function ChildReconciler(shouldTrackSideEffects) {
-  // * 删除目标 Fiber 节点
+  /**
+   * * 删除目标 Fiber 节点: "递"阶段向父节点副作用队列添加标记，"归"阶段执行删除 
+   * @param {Fiber} returnFiber 父节点
+   * @param {Fiber} childToDelete current 树中需要删除的目标节点
+   * @returns 
+   */
   function deleteChild(returnFiber: Fiber, childToDelete: Fiber): void {
     if (!shouldTrackSideEffects) {
       // Noop.
@@ -291,7 +296,12 @@ function ChildReconciler(shouldTrackSideEffects) {
     }
   }
 
-  // ? 删除剩余的子节点 ？
+  /**
+   * * 删除同层所有子节点 Fiber
+   * @param {Fiber} returnFiber 父节点
+   * @param {Fiber | null} currentFirstChild 此时 workInProgress Fiber 所对应 current Fiber 节点的子节点 Fiber 对象
+   * @returns 
+   */
   function deleteRemainingChildren(
     returnFiber: Fiber,
     currentFirstChild: Fiber | null,
@@ -375,7 +385,11 @@ function ChildReconciler(shouldTrackSideEffects) {
     }
   }
 
-  // * 为新节点添加一个插入标识 (Placement)
+  /**
+   * * 为新节点添加一个插入标识 (Placement)
+   * @param {Fiber} newFiber 基于构造函数生成的 FiberNode 节点
+   * @returns newFiber
+   */
   function placeSingleChild(newFiber: Fiber): Fiber {
     // This is simpler for the single child case. We only need to do a
     // placement for inserting new children.
@@ -1146,6 +1160,16 @@ function ChildReconciler(shouldTrackSideEffects) {
     return created;
   }
 
+  /**
+   * * 创建 Fiber 节点
+   * @param Fiber returnFiber 父节点: workInProgress => returnFiber
+   * @param {Fiber | null} currentFirstChild 当前节点所对应 current 树的子节点: 
+   *  * mount 阶段: null => currentFirstChild
+   *  * update 阶段: current.child => currentFirstChild
+   * @param {ReactElement} element 当前更新节点单元的子节点(props.children): newChild => element
+   * @param {Lanes} lanes 
+   * @returns created: 创建出的 Fiber 节点
+   */
   function reconcileSingleElement(
     returnFiber: Fiber,
     currentFirstChild: Fiber | null,
@@ -1154,10 +1178,12 @@ function ChildReconciler(shouldTrackSideEffects) {
   ): Fiber {
     const key = element.key;
     let child = currentFirstChild;
+    // * child !== null 意味着已存在对应的 DOM 节点，执行更新操作
     while (child !== null) {
       // TODO: If key === null and child.key === null, then this only applies to
       // the first item in the list.
       if (child.key === key) {
+        // * child.key === key 表明本次更新过程中，子节点同 current 子节点，可复用
         const elementType = element.type;
         if (elementType === REACT_FRAGMENT_TYPE) {
           if (child.tag === Fragment) {
@@ -1204,6 +1230,7 @@ function ChildReconciler(shouldTrackSideEffects) {
         // * 若不存在 key 值，则表明该节点不存在，删除
         deleteChild(returnFiber, child);
       }
+      // * 切换至兄弟节点
       child = child.sibling;
     }
 
@@ -1268,6 +1295,16 @@ function ChildReconciler(shouldTrackSideEffects) {
   // This API will tag the children with the side-effect of the reconciliation
   // itself. They will be added to the side-effect list as we pass through the
   // children and the parent.
+  /**
+   * * 向 side-effect 副作用列表中添加对应的 Fiber Effect 副作用，用于“归”阶段的 Fiber 树构建
+   * @param {Fiber} returnFiber 父节点: workInProgress => returnFiber
+   * @param {Fiber | null} currentFirstChild 当前节点所对应 current 树的子节点: 
+   *  * mount 阶段: null => currentFirstChild
+   *  * update 阶段: current.child => currentFirstChild
+   * @param {any} newChild 当前更新的子节点: workInProgress.pendingProps.children
+   * @param {Lanes} lanes 
+   * @returns 返回新创建的 Fiber 节点对象
+   */
   function reconcileChildFibers(
     returnFiber: Fiber,
     currentFirstChild: Fiber | null,

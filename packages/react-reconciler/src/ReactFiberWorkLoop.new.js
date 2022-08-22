@@ -1754,7 +1754,14 @@ export function renderHasNotSuspendedYet(): boolean {
   return workInProgressRootExitStatus === RootInProgress;
 }
 
-// * 同步渲染根(root)节点
+/**
+ * * 同步渲染根(root)节点
+ * @param {FiberRootNode} root 
+ *  * Fiber Root 根节点对象：整个应用程序的根节点 (唯一)，对应 ReactDOM.createRoot() 所挂载的 DOM 节点。
+ *  * FiberRootNode.current: 挂载在应用程序下的组件树根节点 (不唯一，可多次调用 render() 方法创建)。对应指向当前页面上已渲染内容对应 Fiber 树。
+ * @param {*} lanes 
+ * @returns 
+ */
 function renderRootSync(root: FiberRoot, lanes: Lanes) {
   const prevExecutionContext = executionContext;
   executionContext |= RenderContext;
@@ -1827,6 +1834,8 @@ function renderRootSync(root: FiberRoot, lanes: Lanes) {
   }
 
   // Set this to null to indicate there's no in-progress render.
+  // * renderRootSync() 流程结束: 意味着递归遍历更新已完成，此时生成的 Fiber 节点树已保存到其他节点。
+  // * 将 workInProgressRoot 重置回 null, 表明当前已没有正在进行的 render 操作
   workInProgressRoot = null;
   workInProgressRootRenderLanes = NoLanes;
 
@@ -1843,6 +1852,10 @@ function workLoopSync() {
   // * 因此，当 workLoopSync() 被执行时，workInProgress 是否为空就成了唯一的递归出口。
   // * (workInProgress === null 意味着 rootFiber 指向了 currentProgress，页面完成渲染且 workInProgress 被重置，下次更新就绪)
   while (workInProgress !== null) {
+    // * 每次迭代的 workInProgress 指向了当前正在处理的 Fiber 节点
+    // TODO: workInProgress 什么时候会被置为 null?
+    // render阶段完成后【即递归构建 Fiber 树完成】会在 renderRootSync() 末尾重置 workInProgress，表明内存中已没有正在进行更新的 Fiber 树。
+    // TODO: workInProgress 在重置之前会被保存到哪个节点?
     performUnitOfWork(workInProgress);
   }
 }
@@ -1935,6 +1948,10 @@ function workLoopConcurrent() {
   }
 }
 
+/**
+ * * 处理 work Fiber 单元
+ * @param {*} unitOfWork 当前工作节点: workInProgress => unitOfWork
+ */
 function performUnitOfWork(unitOfWork: Fiber): void {
   // The current, flushed, state of this fiber is the alternate. Ideally
   // nothing should rely on this, but relying on it here means that we don't
@@ -1943,6 +1960,7 @@ function performUnitOfWork(unitOfWork: Fiber): void {
   const current = unitOfWork.alternate;
   setCurrentDebugFiberInDEV(unitOfWork);
 
+  // * next 接收 beginWork 完成构建的 Fiber 树: workInProgress.child => next
   let next;
   if (enableProfilerTimer && (unitOfWork.mode & ProfileMode) !== NoMode) {
     startProfilerTimer(unitOfWork);
@@ -1971,6 +1989,8 @@ function performUnitOfWork(unitOfWork: Fiber): void {
     // * 这就说明 completeUnitOfWork() 是自底而上的“归”
     completeUnitOfWork(unitOfWork);
   } else {
+    // * next === workInProgress.child
+    // * 此处触发 render 阶段“递”操作: workInProgress = workInProgress.child
     workInProgress = next;
   }
 

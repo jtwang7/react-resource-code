@@ -300,10 +300,10 @@ if (__DEV__) {
  * * Reconciler 模块核心部分
  * * 对于 mount 阶段的组件，他会创建新的子 Fiber 节点
  * * 对于 update 阶段的组件，他会将当前组件与该组件在上次更新时对应的 Fiber 节点比较（Diff算法），将比较的结果生成新Fiber节点
- * @param {*} current 
- * @param {*} workInProgress 
- * @param {*} nextChildren 
- * @param {*} renderLanes 
+ * @param {Fiber | null} current 当前处理 Fiber 单元对应在页面展示的历史 Fiber 节点对象
+ * @param {Fiber} workInProgress 内存 Fiber 树中正在更新的节点单元
+ * @param {any} nextChildren workInProgress.pendingProps.children: 更新 Fiber 单元中 props 字段下的 children Fiber 节点对象
+ * @param {Lanes} renderLanes 
  */
 export function reconcileChildren(
   current: Fiber | null,
@@ -1566,6 +1566,12 @@ function mountHostRootWithoutHydrating(
   return workInProgress.child;
 }
 
+/**
+ * @param {Fiber | null} current 当前组件(上一次更新)对应的 Fiber 节点。【当前展示在页面上的组件对应的历史 Fiber】
+ * @param {Fiber} workInProgress 内存 Fiber 树中正在更新的节点单元
+ * @param {Lanes} renderLanes 
+ * @return 返回 workInProgress.child: 即当前节点下已构建完毕的子节点树
+ */
 function updateHostComponent(
   current: Fiber | null,
   workInProgress: Fiber,
@@ -3863,9 +3869,10 @@ function attemptEarlyBailoutIfNoScheduledUpdate(
 }
 
 /**
- * * current: 当前组件(上一次更新)对应的 Fiber 节点。【当前展示在页面上的组件对应的历史 Fiber】
- * * workInProgress: 当前组件(本次更新)对应的 Fiber 节点。【存储在内存中即将更新的 Fiber】
- * * renderLanes: 优先级相关
+ * @param {Fiber | null} current 当前组件(上一次更新)对应的 Fiber 节点。【当前展示在页面上的组件对应的历史 Fiber】
+ * @param {Fiber} workInProgress 内存 Fiber 树中正在更新的节点单元
+ * @param {Lanes} renderLanes 
+ * @return 返回 workInProgress.child: 即当前节点下已构建完毕的子节点树
  */
 function beginWork(
   current: Fiber | null,
