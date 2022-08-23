@@ -1314,7 +1314,7 @@ function markRootSuspended(root, suspendedLanes) {
 
 // This is the entry point for synchronous tasks that don't go
 // through Scheduler
-// * render 阶段的“同步更新”入口
+// * 同步渲染入口
 function performSyncWorkOnRoot(root) {
   if (enableProfilerTimer && enableProfilerNestedUpdatePhase) {
     syncNestedUpdateFlag();
@@ -1338,7 +1338,7 @@ function performSyncWorkOnRoot(root) {
     return null;
   }
 
-  // * 递归 Root 同步渲染
+  // * render 同步更新入口
   let exitStatus = renderRootSync(root, lanes);
   if (root.tag !== LegacyRoot && exitStatus === RootErrored) {
     // If something threw an error, try rendering one more time. We'll render
@@ -1852,7 +1852,8 @@ function workLoopSync() {
   // * 渲染任务存在一个最大等待期限，低优先级的渲染任务可以被后置但不能无限后置，
   // * 当超出该最大等待期限时，该渲染任务就会被同步执行，不会再去检查是否需要中断。(强制执行的意思)
   // * 因此，当 workLoopSync() 被执行时，workInProgress 是否为空就成了唯一的递归出口。
-  // * (workInProgress === null 意味着 rootFiber 指向了 currentProgress，页面完成渲染且 workInProgress 被重置，下次更新就绪)
+
+  // * 当 render 完成递归和回溯之后, (root.return => workInProgress) === null, 跳出循环
   while (workInProgress !== null) {
     // * 每次迭代的 workInProgress 指向了当前正在处理的 Fiber 节点
     // TODO: workInProgress 什么时候会被置为 null?

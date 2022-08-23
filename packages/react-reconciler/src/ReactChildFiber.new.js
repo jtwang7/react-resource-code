@@ -393,6 +393,7 @@ function ChildReconciler(shouldTrackSideEffects) {
   function placeSingleChild(newFiber: Fiber): Fiber {
     // This is simpler for the single child case. We only need to do a
     // placement for inserting new children.
+    // * newFiber.alternate => current FiberNode, 即视图渲染中无当前对应的 Fiber, 执行插入操作
     if (shouldTrackSideEffects && newFiber.alternate === null) {
       newFiber.flags |= Placement;
     }
@@ -1212,9 +1213,13 @@ function ChildReconciler(shouldTrackSideEffects) {
               elementType.$$typeof === REACT_LAZY_TYPE &&
               resolveLazy(elementType) === child.type)
           ) {
+            // * 删除子节点的兄弟节点
             deleteRemainingChildren(returnFiber, child.sibling);
+            // * 创建 Fiber 节点
             const existing = useFiber(child, element.props);
+            // * 挂载 ref 对象
             existing.ref = coerceRef(returnFiber, child, element);
+            // * 链接父节点
             existing.return = returnFiber;
             if (__DEV__) {
               existing._debugSource = element._source;
@@ -1224,6 +1229,7 @@ function ChildReconciler(shouldTrackSideEffects) {
           }
         }
         // Didn't match.
+        // * 未命中任何一种情况，删除当前子节点
         deleteRemainingChildren(returnFiber, child);
         break;
       } else {
@@ -1234,6 +1240,7 @@ function ChildReconciler(shouldTrackSideEffects) {
       child = child.sibling;
     }
 
+    // * child === null: 执行更新操作
     if (element.type === REACT_FRAGMENT_TYPE) {
       // * element.props.children 会被放到新创建的 Fiber 的 pendingProps 字段上
       const created = createFiberFromFragment(
@@ -1411,6 +1418,7 @@ function ChildReconciler(shouldTrackSideEffects) {
     }
 
     // Remaining cases are all treated as empty.
+    // * 其余的 case 均视为空
     return deleteRemainingChildren(returnFiber, currentFirstChild);
   }
 

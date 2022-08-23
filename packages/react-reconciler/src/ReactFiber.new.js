@@ -171,6 +171,9 @@ function FiberNode(
   this.lanes = NoLanes;
   this.childLanes = NoLanes;
 
+  // * 指向 current FiberNode
+  // TODO: 新创建的 FiberNode 对应 current FiberNode === null, 那什么时候 workInProgress.alternate 会关联上 current ?
+  // * current 和 workInProgress 的关联发生在 FiberNode 更新时，调用 useFiber => createWorkInProgress(), 函数会基于 current 节点创建 workInProgress
   this.alternate = null;
 
   if (enableProfilerTimer) {
@@ -529,6 +532,7 @@ export function createFiberFromTypeAndProps(
     // * 如果是 string 类型则对应原生组件
     fiberTag = HostComponent;
   } else {
+    // * 基于 Tag 命中需要创建的目标组件类型
     getTag: switch (type) {
       case REACT_FRAGMENT_TYPE:
         return createFiberFromFragment(pendingProps.children, mode, lanes, key);
@@ -641,6 +645,13 @@ export function createFiberFromTypeAndProps(
   return fiber;
 }
 
+/**
+ * 基于 ReactElement 构建 Fiber 节点
+ * @param {*} element React Element 对象
+ * @param {*} mode return.mode => mode
+ * @param {*} lanes 
+ * @returns 
+ */
 export function createFiberFromElement(
   element: ReactElement,
   mode: TypeOfMode,
