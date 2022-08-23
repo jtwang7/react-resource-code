@@ -1366,12 +1366,14 @@ function performSyncWorkOnRoot(root) {
 
   // We now have a consistent tree. Because this is a sync render, we
   // will commit it even if something suspended.
-  // * current 和 workInProgress 均挂在在 root 根节点下
-  // * workInProgress 已完成构建，保存到语义化 finishedWork Fiber 节点上
-  // * fiberRootNode 对象只包含了 current 字段，因此需要通过 root.current.alternate 访问 workInProgress 对象 
+  // * fiberRootNode 对象只包含了 current 字段 (调整 current 指针指向可以无缝切换双缓存 Fiber 树)
+  // * workInProgress 完成构建时, 指针指向 null 跳出 workLoop 循环，因此无法直接获取到 workInProgress
+  // * 因此需要通过 root.current.alternate 访问 workInProgress 对象, 将更新完毕的 Fiber TreeNode 保存到语义化 finishedWork Fiber 节点上
   const finishedWork: Fiber = (root.current.alternate: any);
   root.finishedWork = finishedWork;
   root.finishedLanes = lanes;
+
+  // * commit 阶段入口
   commitRoot(
     root,
     workInProgressRootRecoverableErrors,
