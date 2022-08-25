@@ -2106,7 +2106,7 @@ function completeUnitOfWork(unitOfWork: Fiber): void {
       }
     }
 
-    // * 递归其兄弟节点
+    // * 向上回溯时，若遇到同层兄弟节点，则跳出 completeUnitOfWork ，执行 beginWork 递归其兄弟节点
     const siblingFiber = completedWork.sibling;
     if (siblingFiber !== null) {
       // If there is more work to do in this returnFiber, do that next.

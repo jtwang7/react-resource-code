@@ -1039,6 +1039,8 @@ function completeWork(
         }
       } else {
         // * 执行 mount 逻辑
+        // * 由于在 workInProgress.stateNode 内部已经生成了对应的实例，所以此处不需要额外操作。
+        // * 只需要判别一下 workInProgress.stateNode 是否正常生成即可。
         if (!newProps) {
           if (workInProgress.stateNode === null) {
             throw new Error(
