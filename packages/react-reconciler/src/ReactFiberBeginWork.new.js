@@ -300,6 +300,7 @@ if (__DEV__) {
  * * Reconciler 模块核心部分
  * * 对于 mount 阶段的组件，他会创建新的子 Fiber 节点
  * * 对于 update 阶段的组件，他会将当前组件与该组件在上次更新时对应的 Fiber 节点比较（Diff算法），将比较的结果生成新Fiber节点
+ * @description 接收【视图内 Fiber 节点 & 其对应于当前内存更新的 Fiber 节点 & `props.children` 传递的子节点】，无返回值，函数直接将创建完成的 Fiber Node 挂载在 `workInProgress.child` 下
  * @param {Fiber | null} current 当前处理 Fiber 单元对应在页面展示的历史 Fiber 节点对象
  * @param {Fiber} workInProgress 内存 Fiber 树中正在更新的节点单元
  * @param {any} nextChildren workInProgress.pendingProps.children: 更新 Fiber 单元中 props 字段下的 children Fiber 节点对象
@@ -323,6 +324,11 @@ export function reconcileChildren(
   /**
    * * mountChildFibers 与 reconcileChildFibers 这两个方法的逻辑基本一致。唯一的区别是：
    * * reconcileChildFibers 会为生成的 Fiber 节点带上 effectTag 属性，而 mountChildFibers 不会。
+   * @description 此处区别主要体现于 moutChildFibers() 与 reconcileChildFibers() 的生成
+   * moutChildFibers = ChildReconciler(false)
+   * reconcileChildFibers = ChildReconciler(true)
+   * 其中 ChildReconciler 接收 shouldTrackSideEffects 变量作为其布尔值参数
+   * * 通过 shouldTrackSideEffects 变量，React 可以针对 mount 和 update 做出不同的逻辑应对方案。具体体现如下👇：
    */
   if (current === null) {
     // If this is a fresh new component that hasn't been rendered yet, we
@@ -1567,10 +1573,12 @@ function mountHostRootWithoutHydrating(
 }
 
 /**
+ * * 接收【视图内 Fiber 节点及其对应于当前内存更新的 Fiber 节点】，最终返回【内存 Fiber 节点的下一个指针节点】
+ * * current FiberNode / workInProgress FiberNode => workInProgress.child
  * @param {Fiber | null} current 当前组件(上一次更新)对应的 Fiber 节点。【当前展示在页面上的组件对应的历史 Fiber】
  * @param {Fiber} workInProgress 内存 Fiber 树中正在更新的节点单元
  * @param {Lanes} renderLanes 
- * @return 返回 workInProgress.child: 即当前节点下已构建完毕的子节点树
+ * @return 返回 workInProgress.child: 即当前节点下已构建完毕的子节点树。该操作是 React 深度向下递归构建 Fiber Tree 的关键。
  */
 function updateHostComponent(
   current: Fiber | null,
@@ -3869,6 +3877,8 @@ function attemptEarlyBailoutIfNoScheduledUpdate(
 }
 
 /**
+ * * 接收【视图内 Fiber 节点及其对应于当前内存更新的 Fiber 节点】，最终返回【内存 Fiber 节点的下一个指针节点】
+ * * current FiberNode / workInProgress FiberNode => workInProgress.child
  * @param {Fiber | null} current 当前组件(上一次更新)对应的 Fiber 节点。【当前展示在页面上的组件对应的历史 Fiber】
  * @param {Fiber} workInProgress 内存 Fiber 树中正在更新的节点单元
  * @param {Lanes} renderLanes 

@@ -1240,7 +1240,7 @@ function ChildReconciler(shouldTrackSideEffects) {
       child = child.sibling;
     }
 
-    // * child === null: 执行更新操作
+    // * child === null: 执行 create 操作
     if (element.type === REACT_FRAGMENT_TYPE) {
       // * element.props.children 会被放到新创建的 Fiber 的 pendingProps 字段上
       const created = createFiberFromFragment(

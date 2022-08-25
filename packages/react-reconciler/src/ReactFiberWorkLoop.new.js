@@ -1571,6 +1571,8 @@ function prepareFreshStack(root: FiberRoot, lanes: Lanes): Fiber {
       interruptedWork = interruptedWork.return;
     }
   }
+  // * 最开始的 workInProgress 在此处生成
+  // * 此处包含了一系列 React 初始化的操作
   workInProgressRoot = root;
   const rootWorkInProgress = createWorkInProgress(root.current, null);
   workInProgress = rootWorkInProgress;
@@ -1759,7 +1761,7 @@ export function renderHasNotSuspendedYet(): boolean {
 }
 
 /**
- * * 同步渲染根(root)节点
+ * @description (Root Fiber) => (开启深度遍历，递归 workInProgress，构建 Fiber Tree) => (构建结果状态描述)
  * @param {FiberRootNode} root 
  *  * Fiber Root 根节点对象：整个应用程序的根节点 (唯一)，对应 ReactDOM.createRoot() 所挂载的 DOM 节点。
  *  * FiberRootNode.current: 挂载在应用程序下的组件树根节点 (不唯一，可多次调用 render() 方法创建)。对应指向当前页面上已渲染内容对应 Fiber 树。
@@ -1805,6 +1807,7 @@ function renderRootSync(root: FiberRoot, lanes: Lanes) {
     markRenderStarted(lanes);
   }
 
+  // TODO: 此处为什么用 do...while 包裹
   do {
     try {
       // * 核心代码
