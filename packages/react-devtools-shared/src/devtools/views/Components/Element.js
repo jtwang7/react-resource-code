@@ -1,5 +1,5 @@
 /**
- * Copyright (c) Facebook, Inc. and its affiliates.
+ * Copyright (c) Meta Platforms, Inc. and affiliates.
  *
  * This source code is licensed under the MIT license found in the
  * LICENSE file in the root directory of this source tree.
@@ -32,11 +32,10 @@ type Props = {
   ...
 };
 
-export default function Element({data, index, style}: Props) {
+export default function Element({data, index, style}: Props): React.Node {
   const store = useContext(StoreContext);
-  const {ownerFlatTree, ownerID, selectedElementID} = useContext(
-    TreeStateContext,
-  );
+  const {ownerFlatTree, ownerID, selectedElementID} =
+    useContext(TreeStateContext);
   const dispatch = useContext(TreeDispatcherContext);
   const {showInlineWarningsAndErrors} = React.useContext(SettingsContext);
 
@@ -64,10 +63,10 @@ export default function Element({data, index, style}: Props) {
     }),
     [store, element],
   );
-  const {errorCount, warningCount} = useSubscription<{|
+  const {errorCount, warningCount} = useSubscription<{
     errorCount: number,
     warningCount: number,
-  |}>(errorsAndWarningsSubscription);
+  }>(errorsAndWarningsSubscription);
 
   const handleDoubleClick = () => {
     if (id !== null) {
@@ -75,6 +74,7 @@ export default function Element({data, index, style}: Props) {
     }
   };
 
+  // $FlowFixMe[missing-local-annot]
   const handleClick = ({metaKey}) => {
     if (id !== null) {
       logEvent({
@@ -99,6 +99,7 @@ export default function Element({data, index, style}: Props) {
     setIsHovered(false);
   };
 
+  // $FlowFixMe[missing-local-annot]
   const handleKeyDoubleClick = event => {
     // Double clicks on key value are used for text selection (if the text has been truncated).
     // They should not enter the owners tree view.
@@ -220,19 +221,21 @@ export default function Element({data, index, style}: Props) {
 }
 
 // Prevent double clicks on toggle from drilling into the owner list.
+// $FlowFixMe[missing-local-annot]
 const swallowDoubleClick = event => {
   event.preventDefault();
   event.stopPropagation();
 };
 
-type ExpandCollapseToggleProps = {|
+type ExpandCollapseToggleProps = {
   element: ElementType,
   store: Store,
-|};
+};
 
 function ExpandCollapseToggle({element, store}: ExpandCollapseToggleProps) {
   const {children, id, isCollapsed} = element;
 
+  // $FlowFixMe[missing-local-annot]
   const toggleCollapsed = event => {
     event.preventDefault();
     event.stopPropagation();
@@ -240,6 +243,7 @@ function ExpandCollapseToggle({element, store}: ExpandCollapseToggleProps) {
     store.toggleIsCollapsed(id, !isCollapsed);
   };
 
+  // $FlowFixMe[missing-local-annot]
   const stopPropagation = event => {
     // Prevent the row from selecting
     event.stopPropagation();
@@ -260,10 +264,10 @@ function ExpandCollapseToggle({element, store}: ExpandCollapseToggleProps) {
   );
 }
 
-type DisplayNameProps = {|
+type DisplayNameProps = {
   displayName: string | null,
   id: number,
-|};
+};
 
 function DisplayName({displayName, id}: DisplayNameProps) {
   const {searchIndex, searchResults, searchText} = useContext(TreeStateContext);

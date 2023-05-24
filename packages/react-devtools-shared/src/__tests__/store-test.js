@@ -1,5 +1,5 @@
 /**
- * Copyright (c) Facebook, Inc. and its affiliates.
+ * Copyright (c) Meta Platforms, Inc. and affiliates.
  *
  * This source code is licensed under the MIT license found in the
  * LICENSE file in the root directory of this source tree.
@@ -1444,9 +1444,8 @@ describe('Store', () => {
       <MyComponent2 />
     ));
     const MyComponent3 = (props, ref) => null;
-    const ForwardRefComponentWithCustomDisplayName = React.forwardRef(
-      MyComponent3,
-    );
+    const ForwardRefComponentWithCustomDisplayName =
+      React.forwardRef(MyComponent3);
     ForwardRefComponentWithCustomDisplayName.displayName = 'Custom';
     const MyComponent4 = (props, ref) => null;
     const MemoComponent = React.memo(MyComponent4);
@@ -1467,9 +1466,8 @@ describe('Store', () => {
     );
     MemoizedFakeHigherOrderComponentWithDisplayNameOverride.displayName =
       'memoRefOverride';
-    const ForwardRefFakeHigherOrderComponentWithDisplayNameOverride = React.forwardRef(
-      FakeHigherOrderComponent,
-    );
+    const ForwardRefFakeHigherOrderComponentWithDisplayNameOverride =
+      React.forwardRef(FakeHigherOrderComponent);
     ForwardRefFakeHigherOrderComponentWithDisplayNameOverride.displayName =
       'forwardRefOverride';
 

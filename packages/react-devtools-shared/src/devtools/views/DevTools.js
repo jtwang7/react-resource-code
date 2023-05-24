@@ -1,5 +1,5 @@
 /**
- * Copyright (c) Facebook, Inc. and its affiliates.
+ * Copyright (c) Meta Platforms, Inc. and affiliates.
  *
  * This source code is licensed under the MIT license found in the
  * LICENSE file in the root directory of this source tree.
@@ -40,6 +40,7 @@ import WarnIfLegacyBackendDetected from './WarnIfLegacyBackendDetected';
 import {useLocalStorage} from './hooks';
 import ThemeProvider from './ThemeProvider';
 import {LOCAL_STORAGE_DEFAULT_TAB_KEY} from '../../constants';
+import {logEvent} from '../../Logger';
 
 import styles from './DevTools.css';
 
@@ -49,9 +50,8 @@ import type {InspectedElement} from 'react-devtools-shared/src/devtools/views/Co
 import type {FetchFileWithCaching} from './Components/FetchFileWithCachingContext';
 import type {HookNamesModuleLoaderFunction} from 'react-devtools-shared/src/devtools/views/Components/HookNamesModuleLoaderContext';
 import type {FrontendBridge} from 'react-devtools-shared/src/bridge';
-import {logEvent} from '../../Logger';
+import type {BrowserTheme} from 'react-devtools-shared/src/types';
 
-export type BrowserTheme = 'dark' | 'light';
 export type TabID = 'components' | 'profiler';
 
 export type ViewElementSource = (
@@ -67,7 +67,7 @@ export type CanViewElementSource = (
   inspectedElement: InspectedElement,
 ) => boolean;
 
-export type Props = {|
+export type Props = {
   bridge: FrontendBridge,
   browserTheme?: BrowserTheme,
   canViewElementSourceFunction?: ?CanViewElementSource,
@@ -105,7 +105,7 @@ export type Props = {|
   fetchFileWithCaching?: ?FetchFileWithCaching,
   // TODO (Webpack 5) Hopefully we can remove this prop after the Webpack 5 migration.
   hookNamesModuleLoaderFunction?: ?HookNamesModuleLoaderFunction,
-|};
+};
 
 const componentsTab = {
   id: ('components': TabID),
@@ -146,7 +146,7 @@ export default function DevTools({
   hideToggleSuspenseAction,
   hideLogAction,
   hideViewSourceAction,
-}: Props) {
+}: Props): React.Node {
   const [currentTab, setTab] = useLocalStorage<TabID>(
     LOCAL_STORAGE_DEFAULT_TAB_KEY,
     defaultTab,
